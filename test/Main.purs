@@ -19,20 +19,19 @@ testCreateAndGet = do
   k1 <- itemKeyString
   k2 <- itemKeyInt
   let m1 = V.insert k1 "vault" V.empty
-  v1 <- V.lookup k1 m1
+      v1 = V.lookup k1 m1
+      v2 = V.lookup k2 m1
   when (v1 /= Just "vault") (log "Failed getting value from Vault")
-  v2 <- V.lookup k2 m1
   when (v2 /= Nothing) (log "Non existing value should return Nothing")
 
 testCreateAndDelete :: forall eff. Eff (console :: CONSOLE, ref :: REF | eff) Unit
 testCreateAndDelete = do
   k <- itemKeyInt
   let m1 = V.insert k 1 V.empty
-  v1 <- V.lookup k m1
-  let m2 = V.delete k m1
-  v2 <- V.lookup k m2
-  when (v1 == v2) do
-    log "Deleted item should return Nothing"
+      v1 = V.lookup k m1
+      m2 = V.delete k m1
+      v2 = V.lookup k m2
+  when (v1 == v2) $ log "Deleted item should return Nothing"
 
 main :: forall eff. Eff (console :: CONSOLE, ref :: REF | eff) Unit
 main = do

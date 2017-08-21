@@ -6,21 +6,23 @@ module Data.Vault
   , insert
   , lookup
   , delete
+  , union
   ) where
 
 import Prelude
 
 import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Unsafe (unsafeCoerceEff)
+import Control.Monad.Eff.Unsafe (unsafePerformEff)
 import Control.Monad.Eff.Ref (REF, Ref, newRef, writeRef, modifyRef')
 
 import Data.Map as M
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype, over)
 import Data.Vault.Internal (Unique, newUnique)
 
+-- | A persistent store for values of arbitrary types.
 newtype Vault = Vault (M.Map Unique Item)
 
+-- | Key for an item in vault
 data Key a = Key Unique (Item' a)
 
 type Item = Eff (ref :: REF) Unit
@@ -31,35 +33,31 @@ type Item' a = Ref (Maybe a)
 empty :: Vault
 empty = Vault M.empty
 
+-- | Create a new key for use with a vault.
 newKey :: forall eff a. Eff (ref :: REF | eff) (Key a)
 newKey = do
   k <- newUnique
   ref <- newRef Nothing
   pure $ Key k ref
 
+-- | Insert a value for a given key. Overwrites any previous value.
 insert :: forall a. Key a -> a -> Vault -> Vault
-insert (Key k ref) a = over Vault $ M.insert k (writeRef ref (Just a))
+insert (Key k ref) a (Vault m) = Vault (M.insert k (writeRef ref (Just a)) m)
 
+-- | Delete a key from the vault.
 delete :: forall a. Key a -> Vault -> Vault
-delete (Key k _) = over Vault $ M.delete k
+delete (Key k _) (Vault m) = Vault (M.delete k m)
 
-lookup :: forall eff a. Key a -> Vault -> Eff (ref :: REF | eff) (Maybe a)
+-- | Lookup the value of a key in the vault.
+lookup :: forall a. Key a -> Vault -> Maybe a
 lookup (Key k ref) (Vault m) = case M.lookup k m of
-  Nothing  -> pure Nothing
-  Just act -> do
-    _ <- coerceVaultItem act
+  Nothing  -> Nothing
+  Just act -> unsafePerformEff do
+    _ <- act
     modifyRef' ref rollItem
 
-coerceVaultItem :: forall eff a. Eff (ref :: REF) a -> Eff (ref :: REF | eff) a
-coerceVaultItem = unsafeCoerceEff
+union :: Vault -> Vault -> Vault
+union (Vault m) (Vault n) = Vault (M.union m n)
 
 rollItem :: forall a. Maybe a -> { state :: Maybe a, value :: Maybe a }
 rollItem a = { state: Nothing, value: a }
-
-derive instance newtypeVault :: Newtype Vault _
-
-instance eqKey :: Eq (Key a) where
-  eq (Key a _) (Key b _) = a == b
-
-instance ordKey :: Ord (Key a) where
-  compare (Key a _) (Key b _) = compare a b
