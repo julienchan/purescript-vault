@@ -1,5 +1,13 @@
 {
   "name": "purescript-vault",
+  "license": "BSD-3-Clause",
+  "authors": [
+    "Julien Chandra"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/julienchan/purescript-vault.git"
+  },
   "ignore": [
     "**/.*",
     "node_modules",
