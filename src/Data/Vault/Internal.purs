@@ -1,27 +1,53 @@
 module Data.Vault.Internal
   ( Unique
   , newUnique
+  , UniqueMap
+  , empty
+  , lookup
+  , insert
+  , union
+  , delete
   ) where
 
-import Prelude
-
 import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Unsafe (unsafePerformEff)
-import Control.Monad.Eff.Ref (REF, Ref, newRef, modifyRef')
+import Data.Function.Uncurried as Fn
+import Data.Maybe (Maybe)
 
--- | Store as Number, so it can handle 53-bit signed integer
-newtype Unique = Unique Number
+foreign import data Unique :: Type
 
-derive newtype instance eqUnique :: Eq Unique
-derive newtype instance ordUnique :: Ord Unique
+foreign import newUnique :: forall eff. Eff eff Unique
 
-uniqueSource :: Ref Number
-uniqueSource = unsafePerformEff $ newRef 0.00
+foreign import data UniqueMap :: Type -> Type
 
-incrementSource :: Number -> { state :: Number, value :: Number }
-incrementSource x = { state: x + one, value: x}
+foreign import empty :: forall a. UniqueMap a
 
-newUnique :: forall eff. Eff (ref :: REF | eff) Unique
-newUnique = do
-  r <- modifyRef' uniqueSource incrementSource
-  pure $ Unique r
+foreign import delete
+  :: forall a
+   . Fn.Fn2
+      Unique
+      (UniqueMap a)
+      (UniqueMap a)
+
+foreign import lookup
+  :: forall a
+   . Fn.Fn4
+      (forall x. Maybe x)
+      (forall x. x -> Maybe x)
+      Unique
+      (UniqueMap a)
+      (Maybe a)
+
+foreign import insert
+  :: forall a
+   . Fn.Fn3
+      Unique
+      a
+      (UniqueMap a)
+      (UniqueMap a)
+
+foreign import union
+  :: forall a
+   . Fn.Fn2
+      (UniqueMap a)
+      (UniqueMap a)
+      (UniqueMap a)
