@@ -6,22 +6,22 @@ module Data.Vault.Internal
   , lookup
   , insert
   , union
-  , delete
+  , deleteUnique
   ) where
 
-import Control.Monad.Eff (Eff)
+import Effect (Effect)
 import Data.Function.Uncurried as Fn
 import Data.Maybe (Maybe)
 
 foreign import data Unique :: Type
 
-foreign import newUnique :: forall eff. Eff eff Unique
+foreign import newUnique :: Effect Unique
 
 foreign import data UniqueMap :: Type -> Type
 
 foreign import empty :: forall a. UniqueMap a
 
-foreign import delete
+foreign import deleteUnique
   :: forall a
    . Fn.Fn2
       Unique
